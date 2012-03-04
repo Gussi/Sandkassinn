@@ -1,0 +1,14 @@
+# binaries
+*.class
+bin/
+
+# eclipse sh*t
+.classpath
+.project
+.settings/
+
+# beautiful vim leftovers
+*.swp
+
+# No idea...
+*~

@@ -1,0 +1,13 @@
+sandkassinn:
+  datasource:
+    mysql:
+      host: localhost
+      port: 3306
+      username: root
+      possword: root
+      database: sandkassinn
+  modules:
+    bans:
+      enabled: true
+      max-reason: 32
+      max-time: 1M

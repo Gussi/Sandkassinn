@@ -34,6 +34,9 @@ public class Sandkassinn extends JavaPlugin {
 		Sandkassinn.perms = getServer().getServicesManager().getRegistration(Permission.class).getProvider();
 		Sandkassinn.econ = getServer().getServicesManager().getRegistration(Economy.class).getProvider();
 		Sandkassinn.chat = getServer().getServicesManager().getRegistration(Chat.class).getProvider();
+		
+		// Register modules
+		new Bans(this);
 
 		Sandkassinn.log.info(this.getDescription().getName() + " version " + this.getDescription().getVersion() + " is enabled");
 	}

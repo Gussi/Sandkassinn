@@ -4,7 +4,7 @@ sandkassinn:
       host: localhost
       port: 3306
       username: root
-      possword: root
+      password: root
       database: sandkassinn
   modules:
     bans:

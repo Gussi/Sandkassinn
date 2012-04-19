@@ -233,8 +233,50 @@ public class Bans implements Listener {
 		plugin.getCommand("warning").setExecutor(new CommandExecutor() {
 			@Override
 			public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-				// TODO Implement warning
-				return false;
+				// Three arguments is a must
+				if (args.length < 3) {
+					return false;
+				}
+				
+				// Set warning data
+				BanData data = new BanData();
+				data.type = BanData.Type.WARNING;
+				data.banned = args[0];
+				data.executor = sender.getName();
+				data.date_executed = System.currentTimeMillis()/1000L;
+				
+				// Get Player
+				// TODO: Remove code dupe
+				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(data.banned);
+				if (!player.hasPlayedBefore()) {
+					// TODO: i18n
+					sender.sendMessage(ChatColor.DARK_RED + args[0] + ChatColor.RED + " hefur aldrei komid inn á thennan server");
+					return true;
+				}
+				data.banned = player.getName();
+
+				// Parse time
+				try {
+					data.date_expire = data.date_executed + Bans.getTime(args[1]);
+				} catch (Exception e) {
+					// TODO: i18n
+					sender.sendMessage(ChatColor.DARK_RED + args[1] + ChatColor.RED + " er ógilt tíma format.");
+					return false;
+				}
+
+				// Get reason, rest of args
+				// TODO: Remove code dupe
+				StringBuilder reason = new StringBuilder();
+				for (int i = 2; i < args.length; ++i) {
+					reason.append(" ").append(args[i]);
+				}
+				data.reason = reason.toString();
+				
+				ds.add(data);
+				// TODO: i18n
+				Bukkit.getServer().broadcastMessage(ChatColor.DARK_RED + sender.getName() + ChatColor.RED + " varar " + ChatColor.DARK_RED + data.banned + ChatColor.RED + ": " + ChatColor.DARK_RED + data.reason);
+				
+				return true;
 			}
 		});
 

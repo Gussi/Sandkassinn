@@ -56,6 +56,7 @@ public class Bans implements Listener {
 				data.type = BanData.Type.TEMPBAN;
 				data.executor = sender.getName();
 				data.date_executed = System.currentTimeMillis() / 1000L;
+				data.reason = getReason(args, 2);
 
 				// Get Player
 				// TODO: Remove code dupe
@@ -69,26 +70,11 @@ public class Bans implements Listener {
 
 				// Parse time
 				try {
-					data.date_expire = data.date_executed + Bans.getTime(args[1]);
+					data.date_expire = data.date_executed + getTime(args[1]);
 				} catch (Exception e) {
 					// TODO: i18n
 					sender.sendMessage(ChatColor.DARK_RED + args[1] + ChatColor.RED + " er ógilt tíma format.");
 					return false;
-				}
-
-				// Get optional reason, rest of args
-				// TODO: Remove code dupe
-				if (args.length > 2) {
-					StringBuilder reason = new StringBuilder();
-					for (int i = 2; i < args.length; ++i) {
-						reason.append(" ").append(args[i]);
-					}
-					data.reason = reason.toString();
-				} else {
-					data.reason = Sandkassinn.plugin.getConfig().getString("sandkassinn.modules.ban.default-reason");
-					if (data.reason == null) {
-						data.reason = "No reason";
-					}
 				}
 				
 				// Add data and broadcast message
@@ -118,6 +104,7 @@ public class Bans implements Listener {
 				data.executor = sender.getName();
 				data.date_executed = System.currentTimeMillis() / 1000L;
 				data.date_expire = 0L;
+				data.reason = getReason(args, 1);
 				
 				// Get player
 				// TODO: Remove code dupe
@@ -128,21 +115,6 @@ public class Bans implements Listener {
 					return true;
 				}
 				data.banned = player.getName();
-				
-				// Get optional reason, rest of args
-				// TODO: Remove code dupe
-				if (args.length > 1) {
-					StringBuilder reason = new StringBuilder();
-					for (int i = 1; i < args.length; ++i) {
-						reason.append(" ").append(args[i]);
-					}
-					data.reason = reason.toString();
-				} else {
-					data.reason = Sandkassinn.plugin.getConfig().getString("sandkassinn.modules.ban.default-reason");
-					if (data.reason == null) {
-						data.reason = "No reason";
-					}
-				}
 				
 				// Add data and broadcast message
 				// TODO: Remove code dupe
@@ -170,6 +142,7 @@ public class Bans implements Listener {
 				data.executor = sender.getName();
 				data.date_executed = System.currentTimeMillis()/1000L;
 				data.date_expire = 0;
+				data.reason = getReason(args, 1);
 				
 				// TODO: Create player entity and check it regardless?
 				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(data.banned);
@@ -184,21 +157,6 @@ public class Bans implements Listener {
 					// TODO: i18n
 					sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " er ekki bannadur");
 					return true;
-				}
-				
-				// Get optional reason, rest of args
-				// TODO: Remove code dupe
-				if (args.length > 1) {
-					StringBuilder reason = new StringBuilder();
-					for (int i = 1; i < args.length; ++i) {
-						reason.append(" ").append(args[i]);
-					}
-					data.reason = reason.toString();
-				} else {
-					data.reason = Sandkassinn.plugin.getConfig().getString("sandkassinn.modules.ban.default-reason");
-					if (data.reason == null) {
-						data.reason = "No reason";
-					}
 				}
 				
 				Date date_executed = new Date(data_old.date_executed*1000);
@@ -244,6 +202,7 @@ public class Bans implements Listener {
 				data.banned = args[0];
 				data.executor = sender.getName();
 				data.date_executed = System.currentTimeMillis()/1000L;
+				data.reason = getReason(args, 2);
 				
 				// Get Player
 				// TODO: Remove code dupe
@@ -257,20 +216,12 @@ public class Bans implements Listener {
 
 				// Parse time
 				try {
-					data.date_expire = data.date_executed + Bans.getTime(args[1]);
+					data.date_expire = data.date_executed + getTime(args[1]);
 				} catch (Exception e) {
 					// TODO: i18n
 					sender.sendMessage(ChatColor.DARK_RED + args[1] + ChatColor.RED + " er ógilt tíma format.");
 					return false;
 				}
-
-				// Get reason, rest of args
-				// TODO: Remove code dupe
-				StringBuilder reason = new StringBuilder();
-				for (int i = 2; i < args.length; ++i) {
-					reason.append(" ").append(args[i]);
-				}
-				data.reason = reason.toString();
 				
 				ds.add(data);
 				// TODO: i18n
@@ -317,6 +268,29 @@ public class Bans implements Listener {
 				break;
 		}
 	}
+	
+	/**
+	 * Get reason from arguments
+	 * @param args					Arguments passed to command
+	 * @param start					Start from given arg index
+	 * @return						String with given reason, or default reason
+	 */
+	private String getReason(String[] args, int start) {
+		if (args.length > start) {
+			StringBuilder reason = new StringBuilder();
+			for (int i = start; i < args.length; ++i) {
+				reason.append(" ").append(args[i]);
+			}
+			return reason.toString();
+		} else {
+			String reason = Sandkassinn.plugin.getConfig().getString("sandkassinn.modules.ban.default-reason");
+			if (reason == null) {
+				// TODO: i18n
+				return "Engin ástæda";
+			}
+		}
+		return null;
+	}
 
 	/**
 	 * Convert something like 1Y2M3w4d5h6m7s to seconds
@@ -325,7 +299,7 @@ public class Bans implements Listener {
 	 * @return
 	 * @throws Exception Invalid time format
 	 */
-	public static long getTime(String time) throws Exception {
+	private long getTime(String time) throws Exception {
 		long seconds = 0;
 		StringBuilder stack = new StringBuilder();
 		for(int i = 0; i < time.length(); ++i) {

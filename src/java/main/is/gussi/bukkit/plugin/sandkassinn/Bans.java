@@ -246,7 +246,8 @@ public class Bans implements Listener {
 	private String getReason(String[] args, int start) {
 		if (args.length > start) {
 			StringBuilder reason = new StringBuilder();
-			for (int i = start; i < args.length; ++i) {
+			reason.append(args[start]);
+			for (int i = start+1; i < args.length; ++i) {
 				reason.append(" ").append(args[i]);
 			}
 			return reason.toString();

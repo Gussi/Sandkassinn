@@ -1,6 +1,29 @@
 name: Sandkassinn
-main: is.gussi.bukkit.plugin.sandkassin.Sandkassin
+main: is.gussi.bukkit.plugin.sandkassinn.Sandkassinn
 version: 0.1
 website: http://github.com/gussi/Sandkassinn
 author: Gussi
 description: Sandkassinn - Various functionality for Sandkassinn (gussi.is
+
+commands:
+  ban:
+    description: Permanently ban player
+    usage: /<command> player [reason]
+    permission: sandkassinn.ban.perma
+    permission-message: You don't have <permission>
+  tempban:
+    description: Temporarily ban player
+    usage: /<command> player duration [reason]
+    permission: sandkassinn.ban.temp
+    permission-message: You don't have <permission>
+  unban:
+    description:
+    usage: /<command> player
+    permission: sandkassinn.ban.unban
+    permission-message: You don't have <permission>
+  warning:
+    description: Warn player
+    usage: /<command> player duration message
+    permission: sandkassinn.ban.warn
+    permission-message: You don't have <permission>
+  

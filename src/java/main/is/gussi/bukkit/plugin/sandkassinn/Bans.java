@@ -54,19 +54,11 @@ public class Bans implements Listener {
 				// Set ban data
 				BanData data = new BanData();
 				data.type = BanData.Type.TEMPBAN;
+				data.banned = getPlayer(args[0], sender);
 				data.executor = sender.getName();
 				data.date_executed = System.currentTimeMillis() / 1000L;
 				data.reason = getReason(args, 2);
-
-				// Get Player
-				// TODO: Remove code dupe
-				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(args[0]);
-				if (!player.hasPlayedBefore()) {
-					// TODO: i18n
-					sender.sendMessage(ChatColor.DARK_RED + args[0] + ChatColor.RED + " hefur aldrei komid inn á thennan server");
-					return true;
-				}
-				data.banned = player.getName();
+				if (data.banned == null) return true;
 
 				// Parse time
 				try {
@@ -101,20 +93,12 @@ public class Bans implements Listener {
 				// Set ban data
 				BanData data = new BanData();
 				data.type = BanData.Type.PERMABAN;
+				data.banned = getPlayer(args[0], sender);
 				data.executor = sender.getName();
 				data.date_executed = System.currentTimeMillis() / 1000L;
 				data.date_expire = 0L;
 				data.reason = getReason(args, 1);
-				
-				// Get player
-				// TODO: Remove code dupe
-				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(args[0]);
-				if (!player.hasPlayedBefore()) {
-					// TODO: i18n
-					sender.sendMessage(ChatColor.DARK_RED + args[0] + ChatColor.RED + " hefur aldrei komid inn á thennan server");
-					return true;
-				}
-				data.banned = player.getName();
+				if (data.banned == null) return true;
 				
 				// Add data and broadcast message
 				// TODO: Remove code dupe
@@ -138,24 +122,17 @@ public class Bans implements Listener {
 				// Set unban data
 				BanData data = new BanData();
 				data.type = BanData.Type.PARDON;
-				data.banned = args[0];
+				data.banned = getPlayer(args[0], sender);
 				data.executor = sender.getName();
 				data.date_executed = System.currentTimeMillis()/1000L;
 				data.date_expire = 0;
 				data.reason = getReason(args, 1);
+				if (data.banned == null) return true;
 				
-				// TODO: Create player entity and check it regardless?
-				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(data.banned);
-				if (!player.hasPlayedBefore()) {
-					// TODO: i18n
-					sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " hefur aldrei komid inn á serverinn");
-					return true;
-				}
-				
-				BanData data_old = ds.check(player.getName());
+				BanData data_old = ds.check(data.banned);
 				if (data_old == null) {
 					// TODO: i18n
-					sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " er ekki bannadur");
+					sender.sendMessage(ChatColor.DARK_RED + data.banned + ChatColor.RED + " er ekki bannadur");
 					return true;
 				}
 				
@@ -165,21 +142,21 @@ public class Bans implements Listener {
 				switch(data_old.type) {
 					case PARDON:
 						// TODO: i18n
-						sender.sendMessage(ChatColor.DARK_RED + player.getName() + " var unbannadur af " + data_old.executor + " thann " + fmt.format(date_executed));
+						sender.sendMessage(ChatColor.DARK_RED + data.banned + " var unbannadur af " + data_old.executor + " thann " + fmt.format(date_executed));
 						break;
 					case PERMABAN:
 						// TODO: i18n
-						sender.sendMessage(ChatColor.DARK_RED + player.getName() + " var endanlega bannadur af " + data_old.executor + " thann " + fmt.format(date_executed) + " vegna " + data_old.reason);
+						sender.sendMessage(ChatColor.DARK_RED + data.banned + " var endanlega bannadur af " + data_old.executor + " thann " + fmt.format(date_executed) + " vegna " + data_old.reason);
 						// TODO: i18n
 						ds.add(data);
-						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + player.getName() + " var unbannadur af " + data.executor + " vegna " + data.reason);
+						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + data.banned + " var unbannadur af " + data.executor + " vegna " + data.reason);
 						break;
 					case TEMPBAN:
 						// TODO: i18n
-						sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " var bannadur tímabundid af " + ChatColor.DARK_RED + data_old.executor + ChatColor.RED + " thann " + ChatColor.DARK_RED + fmt.format(date_executed) + ChatColor.RED + " til " + ChatColor.DARK_RED + fmt.format(date_expire) + ChatColor.RED + " vegna " + ChatColor.DARK_RED + data_old.reason);
+						sender.sendMessage(ChatColor.DARK_RED + data.banned + ChatColor.RED + " var bannadur tímabundid af " + ChatColor.DARK_RED + data_old.executor + ChatColor.RED + " thann " + ChatColor.DARK_RED + fmt.format(date_executed) + ChatColor.RED + " til " + ChatColor.DARK_RED + fmt.format(date_expire) + ChatColor.RED + " vegna " + ChatColor.DARK_RED + data_old.reason);
 						ds.add(data);
 						// TODO: i18n
-						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + player.getName() + " var unbannadur af " + data.executor + " vegna " + data.reason);
+						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + data.banned + " var unbannadur af " + data.executor + " vegna " + data.reason);
 						break;
 					case WARNING:
 				}
@@ -199,20 +176,11 @@ public class Bans implements Listener {
 				// Set warning data
 				BanData data = new BanData();
 				data.type = BanData.Type.WARNING;
-				data.banned = args[0];
+				data.banned = getPlayer(args[0], sender);
 				data.executor = sender.getName();
 				data.date_executed = System.currentTimeMillis()/1000L;
 				data.reason = getReason(args, 2);
-				
-				// Get Player
-				// TODO: Remove code dupe
-				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(data.banned);
-				if (!player.hasPlayedBefore()) {
-					// TODO: i18n
-					sender.sendMessage(ChatColor.DARK_RED + args[0] + ChatColor.RED + " hefur aldrei komid inn á thennan server");
-					return true;
-				}
-				data.banned = player.getName();
+				if (data.banned == null) return true;
 
 				// Parse time
 				try {
@@ -286,10 +254,20 @@ public class Bans implements Listener {
 			String reason = Sandkassinn.plugin.getConfig().getString("sandkassinn.modules.ban.default-reason");
 			if (reason == null) {
 				// TODO: i18n
-				return "Engin ástæda";
+				reason = "Engin ástæda";
 			}
+			return reason;
 		}
-		return null;
+	}
+	
+	private String getPlayer(String playerName, CommandSender sender) {
+		OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(playerName);
+		if (!player.hasPlayedBefore()) {
+			// TODO: i18n
+			sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " hefur aldrei komid inn á serverinn");
+			return null;
+		}
+		return player.getName();
 	}
 
 	/**

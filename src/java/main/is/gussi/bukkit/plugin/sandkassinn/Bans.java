@@ -25,7 +25,9 @@ public class Bans implements Listener {
 
 	public Bans(Sandkassinn plugin) {
 		// Init datasource
+		// TODO: Multiple datasources?
 		this.ds = new DatasourceMySQL();
+		
 		// Check if enabled, disable silently if not
 		if(!Sandkassinn.plugin.getConfig().getBoolean("sandkassinn.modules.bans.enabled")) {
 			return;
@@ -59,7 +61,8 @@ public class Bans implements Listener {
 				// TODO: Remove code dupe
 				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(args[0]);
 				if (!player.hasPlayedBefore()) {
-					sender.sendMessage(ChatColor.RED + "Player " + ChatColor.DARK_RED + args[0] + ChatColor.RESET + ChatColor.RED + " has never been on this server");
+					// TODO: i18n
+					sender.sendMessage(ChatColor.DARK_RED + args[0] + ChatColor.RED + " hefur aldrei komid inn á thennan server");
 					return true;
 				}
 				data.banned = player.getName();
@@ -68,7 +71,8 @@ public class Bans implements Listener {
 				try {
 					data.date_expire = data.date_executed + Bans.getTime(args[1]);
 				} catch (Exception e) {
-					sender.sendMessage(ChatColor.RED + "Time " + ChatColor.DARK_RED + args[1] + ChatColor.RED + " is invalid.");
+					// TODO: i18n
+					sender.sendMessage(ChatColor.DARK_RED + args[1] + ChatColor.RED + " er ógilt tíma format.");
 					return false;
 				}
 
@@ -87,8 +91,13 @@ public class Bans implements Listener {
 					}
 				}
 				
-				// Add data
+				// Add data and broadcast message
+				// TODO: Remove code dupe
 				ds.add(data);
+				Date date = new Date(data.date_expire*1000);
+				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+				// TODO: i18n
+				Bukkit.getServer().broadcastMessage(ChatColor.DARK_RED + sender.getName() + ChatColor.RED + " bannadi " + ChatColor.DARK_RED + data.banned + ChatColor.RED + " til " + ChatColor.DARK_RED + fmt.format(date) + ChatColor.RED + " vegna " + ChatColor.DARK_RED + data.reason);
 
 				return true;
 			}
@@ -114,7 +123,8 @@ public class Bans implements Listener {
 				// TODO: Remove code dupe
 				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(args[0]);
 				if (!player.hasPlayedBefore()) {
-					sender.sendMessage(ChatColor.RED + "Player " + ChatColor.DARK_RED + args[0] + ChatColor.RESET + ChatColor.RED + " has never been on this server");
+					// TODO: i18n
+					sender.sendMessage(ChatColor.DARK_RED + args[0] + ChatColor.RED + " hefur aldrei komid inn á thennan server");
 					return true;
 				}
 				data.banned = player.getName();
@@ -134,9 +144,12 @@ public class Bans implements Listener {
 					}
 				}
 				
-				// Add data
+				// Add data and broadcast message
+				// TODO: Remove code dupe
 				ds.add(data);
-				
+				// TODO: i18n
+				Bukkit.getServer().broadcastMessage(ChatColor.DARK_RED + sender.getName() + ChatColor.RED + " bannadi " + ChatColor.DARK_RED + data.banned + ChatColor.RED + " endanlega vegna " + ChatColor.DARK_RED + data.reason);
+
 				return true;
 			}
 		});
@@ -178,6 +191,7 @@ public class Bans implements Listener {
 			// Permabanned, frown upon user
 			case PERMABAN:
 				e.setJoinMessage(null);
+				// TODO: i18n
 				player.kickPlayer(ChatColor.DARK_RED + "Endanlegt bann : " + ChatColor.RED + data.reason);
 				break;
 			// Temporary ban, frown upon user
@@ -185,10 +199,12 @@ public class Bans implements Listener {
 				e.setJoinMessage(null);
 				Date date = new Date((long)data.date_expire*1000);
 				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy hh:mm");
+				// TODO: i18n
 				player.kickPlayer(ChatColor.DARK_RED + "Tímabundid bann til " + fmt.format(date) + " : " + ChatColor.RED + data.reason);
 				break;
 			// Warning, warn user
 			case WARNING:
+				// TODO: i18n
 				player.sendMessage(ChatColor.DARK_RED + "Advörun : " + ChatColor.RED + data.reason);
 				break;
 		}

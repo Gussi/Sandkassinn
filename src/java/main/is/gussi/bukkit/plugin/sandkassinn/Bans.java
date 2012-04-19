@@ -56,11 +56,28 @@ public class Bans implements Listener {
 				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.TEMPBAN, getReason(args, 2), sender.getName(), getTime(args[1], sender));
 				if (!data.sanityCheck()) return false;
 				
+				// Check if already banned
+				// TODO: Remove code dupe
+				BanData data_current = ds.check(data.banned);
+				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+				if (data_current != null) {
+					switch (data_current.type) {
+						case PERMABAN:
+							// TODO: i18n
+							sender.sendMessage(data_current.banned + " er nú thegar endanlega bannadur af " + data_current.executor + " vegna " + data_current.reason);
+							return true;
+						case TEMPBAN:
+							// TODO: i18n
+							sender.sendMessage(data_current.banned + " er nú thegar bannadur til " + fmt.format(new Date(data_current.date_expire))  + " af " + data_current.executor + " vegna " + data_current.reason);
+							return true;
+					}
+				}
+				
 				// Add data and broadcast message
 				// TODO: Remove code dupe
 				ds.add(data);
 				Date date = new Date(data.date_expire*1000);
-				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+				
 				// TODO: i18n
 				Bukkit.getServer().broadcastMessage(ChatColor.DARK_RED + sender.getName() + ChatColor.RED + " bannadi " + ChatColor.DARK_RED + data.banned + ChatColor.RED + " til " + ChatColor.DARK_RED + fmt.format(date) + ChatColor.RED + " vegna " + ChatColor.DARK_RED + data.reason);
 
@@ -79,8 +96,25 @@ public class Bans implements Listener {
 				
 				// Set ban data
 				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.PERMABAN, getReason(args, 1), sender.getName(), 0L);
-				Sandkassinn.log.info(data.toString());
 				if (!data.sanityCheck()) return false;
+				
+				// Check if already banned
+				// TODO: Remove code dupe
+				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+				BanData data_current = ds.check(data.banned);
+				if (data_current != null) {
+					switch (data_current.type) {
+						case PERMABAN:
+							// TODO: i18n
+							sender.sendMessage(data_current.banned + " er nú thegar endanlega bannadur af " + data_current.executor + " vegna " + data_current.reason);
+							return true;
+						case TEMPBAN:
+							// TODO: i18n
+							sender.sendMessage(data_current.banned + " er nú thegar bannadur til " + fmt.format(new Date(data_current.date_expire))  + " af " + data_current.executor + " vegna " + data_current.reason);
+							return true;
+					}
+				}
+					
 				
 				// Add data and broadcast message
 				// TODO: Remove code dupe
@@ -135,6 +169,12 @@ public class Bans implements Listener {
 						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + data.banned + " var unbannadur af " + data.executor + " vegna " + data.reason);
 						break;
 					case WARNING:
+						// TODO: i18n
+						sender.sendMessage(ChatColor.DARK_RED + data.banned + ChatColor.RED + " var warned af " + ChatColor.DARK_RED + data_old.executor + ChatColor.RED + " thann " + ChatColor.DARK_RED + fmt.format(date_executed) + ChatColor.RED + " til " + ChatColor.DARK_RED + fmt.format(date_expire) + ChatColor.RED + " vegna " + ChatColor.DARK_RED + data_old.reason);
+						ds.add(data);
+						// TODO: i18n
+						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + data.banned + " var unbannadur af " + data.executor + " vegna " + data.reason);
+						break;
 				}
 				return true;
 			}
@@ -171,20 +211,24 @@ public class Bans implements Listener {
 		if (data == null) {
 			return;
 		}
-		
+
 		// Might has ban
 		switch(data.type) {
-			// Unbanned, do nothing
 			case PARDON:
+				// Unbanned, do nothing
 				break;
-			// Permabanned, frown upon user
 			case PERMABAN:
+				// Permabanned, frown upon user
 				e.setJoinMessage(null);
 				// TODO: i18n
 				player.kickPlayer(ChatColor.DARK_RED + "Endanlegt bann : " + ChatColor.RED + data.reason);
 				break;
-			// Temporary ban, frown upon user
 			case TEMPBAN:
+				if (data.date_expire < System.currentTimeMillis()/1000L) {
+					// Ban expired, do nothing
+					break;
+				}
+				// Temporary ban, frown upon user
 				e.setJoinMessage(null);
 				Date date = new Date((long)data.date_expire*1000);
 				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy hh:mm");
@@ -198,7 +242,7 @@ public class Bans implements Listener {
 				break;
 		}
 	}
-	
+
 	/**
 	 * Get reason from arguments
 	 * @param args					Arguments passed to command
@@ -222,7 +266,7 @@ public class Bans implements Listener {
 			return reason;
 		}
 	}
-	
+
 	private String getPlayer(String playerName, CommandSender sender) {
 		OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(playerName);
 		if (!player.hasPlayedBefore()) {
@@ -232,9 +276,8 @@ public class Bans implements Listener {
 		}
 		return player.getName();
 	}
-	
+
 	private Long getTime(String time, CommandSender sender) {
-		// Parse time
 		try {
 			return getTime(time);
 		} catch (Exception e) {

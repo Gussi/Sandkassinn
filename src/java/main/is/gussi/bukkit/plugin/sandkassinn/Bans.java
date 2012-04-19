@@ -24,9 +24,6 @@ public class Bans implements Listener {
 	public Datasource ds;
 
 	public Bans(Sandkassinn plugin) {
-		// Init datasource
-		// TODO: Multiple datasources?
-		this.ds = new DatasourceMySQL();
 		
 		// Check if enabled, disable silently if not
 		if(!Sandkassinn.plugin.getConfig().getBoolean("sandkassinn.modules.bans.enabled")) {
@@ -38,6 +35,10 @@ public class Bans implements Listener {
 			Sandkassinn.log.warning("Disabling bans module - missing permissions.");
 			return;
 		}
+		
+		// Register datasource
+		// TODO: Multiple datasources?
+		this.ds = new DatasourceMySQL();
 
 		// Register events
 		plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -52,22 +53,8 @@ public class Bans implements Listener {
 				}
 
 				// Set ban data
-				BanData data = new BanData();
-				data.type = BanData.Type.TEMPBAN;
-				data.banned = getPlayer(args[0], sender);
-				data.executor = sender.getName();
-				data.date_executed = System.currentTimeMillis() / 1000L;
-				data.reason = getReason(args, 2);
-				if (data.banned == null) return true;
-
-				// Parse time
-				try {
-					data.date_expire = data.date_executed + getTime(args[1]);
-				} catch (Exception e) {
-					// TODO: i18n
-					sender.sendMessage(ChatColor.DARK_RED + args[1] + ChatColor.RED + " er ógilt tíma format.");
-					return false;
-				}
+				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.TEMPBAN, getReason(args, 2), sender.getName(), getTime(args[1], sender));
+				if (!data.sanityCheck()) return false;
 				
 				// Add data and broadcast message
 				// TODO: Remove code dupe
@@ -91,14 +78,9 @@ public class Bans implements Listener {
 				}
 				
 				// Set ban data
-				BanData data = new BanData();
-				data.type = BanData.Type.PERMABAN;
-				data.banned = getPlayer(args[0], sender);
-				data.executor = sender.getName();
-				data.date_executed = System.currentTimeMillis() / 1000L;
-				data.date_expire = 0L;
-				data.reason = getReason(args, 1);
-				if (data.banned == null) return true;
+				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.PERMABAN, getReason(args, 1), sender.getName(), 0L);
+				Sandkassinn.log.info(data.toString());
+				if (!data.sanityCheck()) return false;
 				
 				// Add data and broadcast message
 				// TODO: Remove code dupe
@@ -120,14 +102,8 @@ public class Bans implements Listener {
 				}
 				
 				// Set unban data
-				BanData data = new BanData();
-				data.type = BanData.Type.PARDON;
-				data.banned = getPlayer(args[0], sender);
-				data.executor = sender.getName();
-				data.date_executed = System.currentTimeMillis()/1000L;
-				data.date_expire = 0;
-				data.reason = getReason(args, 1);
-				if (data.banned == null) return true;
+				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.PARDON, getReason(args, 1), sender.getName(), 0L);
+				if (!data.sanityCheck()) return false;
 				
 				BanData data_old = ds.check(data.banned);
 				if (data_old == null) {
@@ -174,22 +150,8 @@ public class Bans implements Listener {
 				}
 				
 				// Set warning data
-				BanData data = new BanData();
-				data.type = BanData.Type.WARNING;
-				data.banned = getPlayer(args[0], sender);
-				data.executor = sender.getName();
-				data.date_executed = System.currentTimeMillis()/1000L;
-				data.reason = getReason(args, 2);
-				if (data.banned == null) return true;
-
-				// Parse time
-				try {
-					data.date_expire = data.date_executed + getTime(args[1]);
-				} catch (Exception e) {
-					// TODO: i18n
-					sender.sendMessage(ChatColor.DARK_RED + args[1] + ChatColor.RED + " er ógilt tíma format.");
-					return false;
-				}
+				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.WARNING, getReason(args, 2), sender.getName(), getTime(args[1], sender));
+				if (!data.sanityCheck()) return false;
 				
 				ds.add(data);
 				// TODO: i18n
@@ -269,6 +231,17 @@ public class Bans implements Listener {
 			return null;
 		}
 		return player.getName();
+	}
+	
+	private Long getTime(String time, CommandSender sender) {
+		// Parse time
+		try {
+			return getTime(time);
+		} catch (Exception e) {
+			// TODO: i18n
+			sender.sendMessage(ChatColor.DARK_RED + time + ChatColor.RED + " er ógilt tíma format.");
+			return null;
+		}
 	}
 
 	/**

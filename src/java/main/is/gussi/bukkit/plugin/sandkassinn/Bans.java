@@ -158,8 +158,74 @@ public class Bans implements Listener {
 		plugin.getCommand("unban").setExecutor(new CommandExecutor() {
 			@Override
 			public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-				// TODO Implement unban
-				return false;
+				// One argument is a must, we can work up from there
+				if (args.length < 1) {
+					return false;
+				}
+				
+				// Set unban data
+				BanData data = new BanData();
+				data.type = BanData.Type.PARDON;
+				data.banned = args[0];
+				data.executor = sender.getName();
+				data.date_executed = System.currentTimeMillis()/1000L;
+				data.date_expire = 0;
+				
+				// TODO: Create player entity and check it regardless?
+				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(data.banned);
+				if (!player.hasPlayedBefore()) {
+					// TODO: i18n
+					sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " hefur aldrei komid inn á serverinn");
+					return true;
+				}
+				
+				BanData data_old = ds.check(player.getName());
+				if (data_old == null) {
+					// TODO: i18n
+					sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " er ekki bannadur");
+					return true;
+				}
+				
+				// Get optional reason, rest of args
+				// TODO: Remove code dupe
+				if (args.length > 1) {
+					StringBuilder reason = new StringBuilder();
+					for (int i = 1; i < args.length; ++i) {
+						reason.append(" ").append(args[i]);
+					}
+					data.reason = reason.toString();
+				} else {
+					data.reason = Sandkassinn.plugin.getConfig().getString("sandkassinn.modules.ban.default-reason");
+					if (data.reason == null) {
+						data.reason = "No reason";
+					}
+				}
+				
+				Date date_executed = new Date(data_old.date_executed*1000);
+				Date date_expire = new Date(data_old.date_expire*1000);
+				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+				switch(data_old.type) {
+					case PARDON:
+						// TODO: i18n
+						sender.sendMessage(ChatColor.DARK_RED + player.getName() + " var unbannadur af " + data_old.executor + " thann " + fmt.format(date_executed));
+						break;
+					case PERMABAN:
+						// TODO: i18n
+						sender.sendMessage(ChatColor.DARK_RED + player.getName() + " var endanlega bannadur af " + data_old.executor + " thann " + fmt.format(date_executed) + " vegna " + data_old.reason);
+						// TODO: i18n
+						ds.add(data);
+						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + player.getName() + " var unbannadur af " + data.executor + " vegna " + data.reason);
+						break;
+					case TEMPBAN:
+						// TODO: i18n
+						sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " var bannadur tímabundid af " + ChatColor.DARK_RED + data_old.executor + ChatColor.RED + " thann " + ChatColor.DARK_RED + fmt.format(date_executed) + ChatColor.RED + " til " + ChatColor.DARK_RED + fmt.format(date_expire) + ChatColor.RED + " vegna " + ChatColor.DARK_RED + data_old.reason);
+						ds.add(data);
+						// TODO: i18n
+						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + player.getName() + " var unbannadur af " + data.executor + " vegna " + data.reason);
+						break;
+					case WARNING:
+				}
+				return true;
 			}
 		});
 		
@@ -178,7 +244,7 @@ public class Bans implements Listener {
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void eventLogin(PlayerJoinEvent e) {
 		Player player = e.getPlayer();
-		BanData data = ds.check(player);
+		BanData data = ds.check(player.getName());
 		if (data == null) {
 			return;
 		}

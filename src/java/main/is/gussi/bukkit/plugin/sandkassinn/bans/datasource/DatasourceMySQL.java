@@ -11,7 +11,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Player;
 
 import is.gussi.bukkit.plugin.sandkassinn.Sandkassinn;
 import is.gussi.bukkit.plugin.sandkassinn.bans.BanData;
@@ -55,11 +54,11 @@ public class DatasourceMySQL implements Datasource {
 	}
 
 	@Override
-	public BanData check(Player player) {
+	public BanData check(String player) {
 		PreparedStatement ps = null;
 		try {
 			ps = this.db().prepareStatement("SELECT `banned`, `type`, `reason`, `executor`, `date_executed`, `date_expire` FROM `sandkassinn_bans` WHERE `banned` = ? ORDER BY `id` DESC LIMIT 1");
-			ps.setString(1, player.getName());
+			ps.setString(1, player);
 			ResultSet ret = ps.executeQuery();
 			if (ret.next()) {
 				BanData data = new BanData();

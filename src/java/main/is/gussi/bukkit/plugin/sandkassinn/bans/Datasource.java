@@ -1,7 +1,5 @@
 package is.gussi.bukkit.plugin.sandkassinn.bans;
 
-import org.bukkit.entity.Player;
-
 /**
  * Common datasource interface for bans
  * 
@@ -9,5 +7,5 @@ import org.bukkit.entity.Player;
  */
 public interface Datasource {
 	public boolean add(BanData data);
-	public BanData check(Player player);
+	public BanData check(String player);
 }

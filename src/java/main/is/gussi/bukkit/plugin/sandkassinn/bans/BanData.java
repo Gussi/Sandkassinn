@@ -15,8 +15,6 @@ public class BanData {
 	public long date_expire;
 	
 	public BanData() {
-		// TODO: i18n
-		this.reason = "Engin ástæda";
 		this.date_executed = System.currentTimeMillis()/1000L;
 		return;
 	}

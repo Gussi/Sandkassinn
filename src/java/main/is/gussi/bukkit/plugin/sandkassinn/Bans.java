@@ -3,6 +3,9 @@ package is.gussi.bukkit.plugin.sandkassinn;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import is.gussi.bukkit.plugin.sandkassinn.bans.BanData;
 import is.gussi.bukkit.plugin.sandkassinn.bans.Datasource;
@@ -45,6 +48,7 @@ public class Bans implements Listener {
 		
 		// Tempban command handler
 		plugin.getCommand("tempban").setExecutor(new CommandExecutor() {
+			@SuppressWarnings("serial")
 			@Override
 			public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 				// Two arguments is a must, we can work up from there
@@ -53,22 +57,39 @@ public class Bans implements Listener {
 				}
 
 				// Set ban data
-				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.TEMPBAN, getReason(args, 2), sender.getName(), getTime(args[1], sender));
-				if (!data.sanityCheck()) return false;
+				BanData data = null;
+				try {
+					data = new BanData(getPlayer(args[0], sender).getName(), BanData.Type.TEMPBAN, getReason(args, 2), sender.getName(), getTime(args[1], sender));
+					if (!data.sanityCheck()) return false;
+				} catch(Exception e) {
+					return false;
+				}
 				
 				// Check if already banned
 				// TODO: Remove code dupe
-				BanData data_current = ds.check(data.banned);
+				final BanData data_current = ds.check(data.banned);
 				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 				if (data_current != null) {
 					switch (data_current.type) {
 						case PERMABAN:
 							// TODO: i18n
-							sender.sendMessage(data_current.banned + " er nú thegar endanlega bannadur af " + data_current.executor + " vegna " + data_current.reason);
+							sender.sendMessage(buildString("&4{banned} &cer nú thegar endanlega bannadur af &4{executor} &cvegna &4{reason}", new HashMap<String, String>(){{
+								put("banned", data_current.banned);
+								put("executor", data_current.executor);
+								put("reason", data_current.reason);
+							}}));
 							return true;
 						case TEMPBAN:
+							if(data_current.date_expire*1000 < System.currentTimeMillis()) {
+								break;
+							}
 							// TODO: i18n
-							sender.sendMessage(data_current.banned + " er nú thegar bannadur til " + fmt.format(new Date(data_current.date_expire))  + " af " + data_current.executor + " vegna " + data_current.reason);
+							sender.sendMessage(buildString("&4{banned} &cer nú thegar bannadur til &4{date_expire} &caf &4{executor} &cvegna &4{reason}", new HashMap<String, String>(){{
+								put("banned", data_current.banned);
+								put("date_expire", String.valueOf(data_current.date_expire));
+								put("executor", data_current.executor);
+								put("reason", data_current.reason);
+							}}));
 							return true;
 					}
 				}
@@ -80,7 +101,10 @@ public class Bans implements Listener {
 				
 				// TODO: i18n
 				Bukkit.getServer().broadcastMessage(ChatColor.DARK_RED + sender.getName() + ChatColor.RED + " bannadi " + ChatColor.DARK_RED + data.banned + ChatColor.RED + " til " + ChatColor.DARK_RED + fmt.format(date) + ChatColor.RED + " vegna " + ChatColor.DARK_RED + data.reason);
-
+				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(args[0]);
+				if (player.isOnline()) {
+					((Player)player).kickPlayer("Bannadur til " + fmt.format(date) + " vegna: " + data.reason);
+				}
 				return true;
 			}
 		});
@@ -95,8 +119,13 @@ public class Bans implements Listener {
 				}
 				
 				// Set ban data
-				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.PERMABAN, getReason(args, 1), sender.getName(), 0L);
-				if (!data.sanityCheck()) return false;
+				BanData data = null;
+				try {
+					data = new BanData(getPlayer(args[0], sender).getName(), BanData.Type.PERMABAN, getReason(args, 1), sender.getName(), 0L);
+					if (!data.sanityCheck()) return false;
+				} catch(Exception e) {
+					return false;
+				}
 				
 				// Check if already banned
 				// TODO: Remove code dupe
@@ -109,6 +138,9 @@ public class Bans implements Listener {
 							sender.sendMessage(data_current.banned + " er nú thegar endanlega bannadur af " + data_current.executor + " vegna " + data_current.reason);
 							return true;
 						case TEMPBAN:
+							if(data_current.date_expire*1000 < System.currentTimeMillis()) {
+								break;
+							}
 							// TODO: i18n
 							sender.sendMessage(data_current.banned + " er nú thegar bannadur til " + fmt.format(new Date(data_current.date_expire))  + " af " + data_current.executor + " vegna " + data_current.reason);
 							return true;
@@ -121,7 +153,11 @@ public class Bans implements Listener {
 				ds.add(data);
 				// TODO: i18n
 				Bukkit.getServer().broadcastMessage(ChatColor.DARK_RED + sender.getName() + ChatColor.RED + " bannadi " + ChatColor.DARK_RED + data.banned + ChatColor.RED + " endanlega vegna " + ChatColor.DARK_RED + data.reason);
-
+				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(args[0]);
+				if (player.isOnline()) {
+					((Player)player).kickPlayer("Endanlegt bann vegna: " + data.reason);
+				}
+				
 				return true;
 			}
 		});
@@ -136,7 +172,7 @@ public class Bans implements Listener {
 				}
 				
 				// Set unban data
-				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.PARDON, getReason(args, 1), sender.getName(), 0L);
+				BanData data = new BanData(getPlayer(args[0], sender).getName(), BanData.Type.PARDON, getReason(args, 1), sender.getName(), 0L);
 				if (!data.sanityCheck()) return false;
 				
 				BanData data_old = ds.check(data.banned);
@@ -159,7 +195,7 @@ public class Bans implements Listener {
 						sender.sendMessage(ChatColor.DARK_RED + data.banned + " var endanlega bannadur af " + data_old.executor + " thann " + fmt.format(date_executed) + " vegna " + data_old.reason);
 						// TODO: i18n
 						ds.add(data);
-						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + data.banned + " var unbannadur af " + data.executor + " vegna " + data.reason);
+						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + data.banned + " var unbannadur af " + data.executor + " vegna: " + data.reason);
 						break;
 					case TEMPBAN:
 						// TODO: i18n
@@ -190,7 +226,7 @@ public class Bans implements Listener {
 				}
 				
 				// Set warning data
-				BanData data = new BanData(getPlayer(args[0], sender), BanData.Type.WARNING, getReason(args, 2), sender.getName(), getTime(args[1], sender));
+				BanData data = new BanData(getPlayer(args[0], sender).getName(), BanData.Type.WARNING, getReason(args, 2), sender.getName(), getTime(args[1], sender));
 				if (!data.sanityCheck()) return false;
 				
 				ds.add(data);
@@ -267,14 +303,14 @@ public class Bans implements Listener {
 		}
 	}
 
-	private String getPlayer(String playerName, CommandSender sender) {
+	private OfflinePlayer getPlayer(String playerName, CommandSender sender) {
 		OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(playerName);
 		if (!player.hasPlayedBefore()) {
 			// TODO: i18n
 			sender.sendMessage(ChatColor.DARK_RED + player.getName() + ChatColor.RED + " hefur aldrei komid inn á serverinn");
 			return null;
 		}
-		return player.getName();
+		return player;
 	}
 
 	private Long getTime(String time, CommandSender sender) {
@@ -282,9 +318,30 @@ public class Bans implements Listener {
 			return getTime(time);
 		} catch (Exception e) {
 			// TODO: i18n
-			sender.sendMessage(ChatColor.DARK_RED + time + ChatColor.RED + " er ógilt tíma format.");
+			HashMap<String, String> replacements = new HashMap<String, String>();
+			String message = "&4'{time}' &cer ógilt tíma format.";
+			replacements.put("time", time);
+			sender.sendMessage(this.buildString(message, replacements));
 			return null;
 		}
+	}
+	
+	private String buildString(String text, HashMap<String, String> replacements) {
+		Pattern pattern = Pattern.compile("\\{(.+?)\\}");
+		Matcher matcher = pattern.matcher(text);
+		StringBuilder builder = new StringBuilder();
+		int i = 0;
+		while (matcher.find()) {
+		    String replacement = replacements.get(matcher.group(1));
+		    builder.append(text.substring(i, matcher.start()));
+		    if (replacement == null)
+		        builder.append(matcher.group(0));
+		    else
+		        builder.append(replacement);
+		    i = matcher.end();
+		}
+		builder.append(text.substring(i, text.length()));
+		return builder.toString().replaceAll("&", new Character((char) 167).toString());
 	}
 
 	/**
@@ -354,6 +411,9 @@ public class Bans implements Listener {
 
 				throw new Exception("Invalid time format");
 			}
+		}
+		if (seconds == 0) {
+			throw new Exception("Invalid time format");
 		}
 		return seconds;
 	}

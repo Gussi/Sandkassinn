@@ -5,7 +5,8 @@ public class BanData {
 		PERMABAN,
 		TEMPBAN,
 		WARNING,
-		PARDON
+		PARDON,
+		COMPROMISED
 	}
 	public String banned;
 	public Type type;
@@ -76,6 +77,11 @@ public class BanData {
 				if (this.date_executed == 0) return false;
 				if (this.date_expire == 0) return false;
 				break;
+			case COMPROMISED:
+				if (this.banned == null) return false;
+				if (this.reason == null) return false;
+				if (this.executor == null) return false;
+				if (this.date_executed == 0) return false;
 			default:
 				return false;
 		}

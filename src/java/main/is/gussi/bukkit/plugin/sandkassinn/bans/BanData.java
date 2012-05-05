@@ -1,5 +1,10 @@
 package is.gussi.bukkit.plugin.sandkassinn.bans;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+
 public class BanData {
 	public enum Type {
 		PERMABAN,
@@ -86,5 +91,21 @@ public class BanData {
 				return false;
 		}
 		return true;
+	}
+	
+	/**
+	 * Get hashmap of ban data
+	 * @return HashMap<String, String>		Display friendly hash map
+	 */
+	public HashMap<String, String> getHashMap() {
+		DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+		HashMap<String, String> map = new HashMap<String, String>();
+		map.put("type", this.type.name());
+		map.put("banned", this.banned);
+		map.put("reason", this.reason);
+		map.put("executor", this.executor);
+		map.put("date_executed", fmt.format(new Date(this.date_executed * 1000L)));
+		map.put("date_expire", fmt.format(new Date(this.date_expire * 1000L)));
+		return map;
 	}
 }

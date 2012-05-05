@@ -29,13 +29,19 @@ public class Common {
 		Bukkit.getServer().broadcastMessage(buildString(message, tokens));
 	}
 
-	private static String buildString(String message, HashMap<String, String> tokens) {
+	public static String buildString(String message, HashMap<String, String> tokens) {
 		Pattern pattern = Pattern.compile("\\{(.+?)\\}");
 		Matcher matcher = pattern.matcher(message);
 		StringBuilder builder = new StringBuilder();
 		int i = 0;
 		while (matcher.find()) {
-		    String replacement = tokens.get(matcher.group(1));
+			String replacement = null;
+			try {
+				replacement = tokens.get(matcher.group(1));
+			} catch(NullPointerException e) {
+				Sandkassinn.log.severe("Invalid token: " + matcher.group(1));
+				e.printStackTrace();
+			}
 		    builder.append(message.substring(i, matcher.start()));
 		    if (replacement == null)
 		        builder.append(matcher.group(0));

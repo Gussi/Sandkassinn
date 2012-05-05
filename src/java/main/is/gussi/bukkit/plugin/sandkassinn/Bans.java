@@ -1,10 +1,6 @@
 package is.gussi.bukkit.plugin.sandkassinn;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-
+import is.gussi.bukkit.plugin.sandkassinn.Common;
 import is.gussi.bukkit.plugin.sandkassinn.bans.BanData;
 import is.gussi.bukkit.plugin.sandkassinn.bans.Datasource;
 import is.gussi.bukkit.plugin.sandkassinn.bans.datasource.DatasourceMySQL;
@@ -19,20 +15,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 
 public class Bans implements Listener {
 	private Datasource ds;
-	private DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 
 	public Bans(Sandkassinn plugin) {
-		
+
 		// Check if enabled, disable silently if not
 		if(!Sandkassinn.plugin.getConfig().getBoolean("sandkassinn.modules.bans.enabled")) {
 			return;
 		}
 
-		// Check if perm service is set, disable if not
+		// Check if perm service is set, disable with noise if not
 		if(Sandkassinn.perms == null) {
 			Sandkassinn.log.warning("Disabling bans module - missing permissions.");
 			return;
@@ -42,12 +37,11 @@ public class Bans implements Listener {
 		// TODO: Multiple datasources?
 		this.ds = new DatasourceMySQL();
 
-		// Register events
+		// Register events within class
 		plugin.getServer().getPluginManager().registerEvents(this, plugin);
 		
 		// Tempban command handler
 		plugin.getCommand("tempban").setExecutor(new CommandExecutor() {
-			@SuppressWarnings("serial")
 			@Override
 			public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
 				// Two arguments is a must, we can work up from there
@@ -71,54 +65,45 @@ public class Bans implements Listener {
 					return true;
 				} catch(Exception e) {
 					// TODO: i18n
-					Common.sendMessage(sender, "Mega villa");
+					Common.sendMessage(sender, "Mega villa, láta Gussa vita");
+					e.printStackTrace();
 					return true;
 				}
 				
 				// Check if already banned
 				// TODO: Remove code dupe
-				final BanData data_current = ds.check(data.banned);
+				BanData data_current = ds.check(data.banned);
 				
 				if (data_current != null) {
 					switch (data_current.type) {
 						case PERMABAN:
 							// TODO: i18n
-							Common.sendMessage(sender, "&4{banned} &cer nú thegar endanlega bannadur af &4{executor} &cvegna &4{reason}", new HashMap<String, String>(){{
-								put("banned", data_current.banned);
-								put("executor", data_current.executor);
-								put("reason", data_current.reason);
-							}});
+							Common.sendMessage(sender, "&4{banned} &cer nú thegar endanlega bannadur af &4{executor} &cvegna: &4{reason}", data_current.getHashMap());
 							return true;
 						case TEMPBAN:
-							if(data_current.date_expire*1000 < System.currentTimeMillis()) {
+							if(data_current.date_expire * 1000 < System.currentTimeMillis()) {
 								break;
 							}
 							// TODO: i18n
-							Common.sendMessage(sender, "&4{banned} &cer nú thegar bannadur til &4{date_expire} &caf &4{executor} &cvegna &4{reason}", new HashMap<String, String>(){{
-								put("banned", data_current.banned);
-								put("date_expire", String.valueOf(data_current.date_expire));
-								put("executor", data_current.executor);
-								put("reason", data_current.reason);
-							}});
+							Common.sendMessage(sender, "&4{banned} &cer nú thegar bannadur til &4{date_expire} &caf &4{executor} &cvegna: &4{reason}", data_current.getHashMap());
 							return true;
+						case COMPROMISED:
+							// TODO: i18n
+							Common.sendMessage(sender, "&4{banned} &cer stolinn account - nú thegar í endanlegu banni", data_current.getHashMap());
 					}
 				}
 				
 				// Add data and broadcast message
 				// TODO: Remove code dupe
 				ds.add(data);
-				Date date = new Date(data.date_expire*1000);
 				
 				// TODO: i18n
-				HashMap<String, String> token = new HashMap<String, String>();
-				token.put("executor", data.executor);
-				token.put("banned", data.banned);
-				token.put("fmt_date_expire", fmt.format(data.date_expire));
-				token.put("reason", data.reason);
-				Common.broadcastMessage("&4{executor} &cbannadi &4{banned} &ctil &4{fmt_date_expire} &cvegna: &4{reason}", token);
+				Common.broadcastMessage("&4{executor} &cbannadi &4{banned} &ctil &4{date_expire} &cvegna: &4{reason}", data.getHashMap());
+
 				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(args[0]);
 				if (player.isOnline()) {
-					((Player)player).kickPlayer("Bannadur til " + fmt.format(date) + " vegna: " + data.reason);
+					// TODO: Common.kickPlayer wit formatting
+					((Player)player).kickPlayer("Bannadur til " + data.getHashMap().get("date_expire") + " vegna: " + data.getHashMap().get("reason"));
 				}
 				return true;
 			}
@@ -146,39 +131,35 @@ public class Bans implements Listener {
 				} catch(UserException e) {
 					Common.sendMessage(sender, "Villa: " + e.getMessage());
 					return true;
-				} catch(Exception e) {
-					Common.sendMessage(sender, "Funky kerfisvilla, láttu Gussa vita");
-					return true;
 				}
 				
 				// Check if already banned
-				// TODO: Remove code dupe
-				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 				BanData data_current = ds.check(data.banned);
 				if (data_current != null) {
 					switch (data_current.type) {
 						case PERMABAN:
 							// TODO: i18n
-							sender.sendMessage(data_current.banned + " er nú thegar endanlega bannadur af " + data_current.executor + " vegna " + data_current.reason);
+							Common.sendMessage(sender, "&4{banned} &cer nú thegar endanlega bannadur af &4{executor} &cvegna: &4{reason}", data_current.getHashMap());
 							return true;
 						case TEMPBAN:
+							// Check if already expired
 							if(data_current.date_expire*1000 < System.currentTimeMillis()) {
 								break;
 							}
 							// TODO: i18n
-							sender.sendMessage(data_current.banned + " er nú thegar bannadur til " + fmt.format(new Date(data_current.date_expire))  + " af " + data_current.executor + " vegna " + data_current.reason);
+							Common.sendMessage(sender, "&4{banned} &cer nú thegar bannadur af &4{executor} &ctil &4{date_expire} &cvegna: &4{reason}", data_current.getHashMap());
 							return true;
 					}
 				}
-					
 				
 				// Add data and broadcast message
 				// TODO: Remove code dupe
 				ds.add(data);
 				// TODO: i18n
-				Bukkit.getServer().broadcastMessage(ChatColor.DARK_RED + sender.getName() + ChatColor.RED + " bannadi " + ChatColor.DARK_RED + data.banned + ChatColor.RED + " endanlega vegna " + ChatColor.DARK_RED + data.reason);
+				Common.broadcastMessage("&4{executor} &cbannadi &4{banned} &cendanlega vegna: &4{reason}", data.getHashMap());
 				OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(args[0]);
 				if (player.isOnline()) {
+					// TODO: Common.kickPlayer
 					((Player)player).kickPlayer("Endanlegt bann vegna: " + data.reason);
 				}
 				
@@ -208,46 +189,40 @@ public class Bans implements Listener {
 				} catch(UserException e) {
 					Common.sendMessage(sender, "Villa: " + e.getMessage());
 					return true;
-				} catch(Exception e) {
-					Common.sendMessage(sender, "Major villa, láta Gussa vita.");
-					return true;
 				}
 				
 				BanData data_old = ds.check(data.banned);
 				if (data_old == null) {
 					// TODO: i18n
-					sender.sendMessage(ChatColor.DARK_RED + data.banned + ChatColor.RED + " er ekki bannadur");
+					Common.sendMessage(sender, "&4{banned} &cer ekki bannadur", data.getHashMap());
 					return true;
 				}
 				
-				Date date_executed = new Date(data_old.date_executed*1000);
-				Date date_expire = new Date(data_old.date_expire*1000);
-				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy HH:mm");
 				switch(data_old.type) {
 					case PARDON:
 						// TODO: i18n
-						sender.sendMessage(ChatColor.DARK_RED + data.banned + " var unbannadur af " + data_old.executor + " thann " + fmt.format(date_executed));
+						Common.sendMessage(sender, "&4{banned} &cvar unbanned af &4{executor} &cthann &4{date_executed} &cvegna: &4{reason}", data_old.getHashMap());
 						break;
 					case PERMABAN:
 						// TODO: i18n
-						sender.sendMessage(ChatColor.DARK_RED + data.banned + " var endanlega bannadur af " + data_old.executor + " thann " + fmt.format(date_executed) + " vegna " + data_old.reason);
-						// TODO: i18n
+						Common.sendMessage(sender, "&4{banned} &cvar endanlega banned af &4{executor} thann &4{date_executed} &cvegna: &4{reason}", data_old.getHashMap());
 						ds.add(data);
-						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + data.banned + " var unbannadur af " + data.executor + " vegna: " + data.reason);
+						// TODO: i18n
+						Common.broadcastMessage("&aEndanlegt bann á &2{banned} &avar aflétt af &2{executor} &avegna: &2{reason}", data.getHashMap());
 						break;
 					case TEMPBAN:
 						// TODO: i18n
-						sender.sendMessage(ChatColor.DARK_RED + data.banned + ChatColor.RED + " var bannadur tímabundid af " + ChatColor.DARK_RED + data_old.executor + ChatColor.RED + " thann " + ChatColor.DARK_RED + fmt.format(date_executed) + ChatColor.RED + " til " + ChatColor.DARK_RED + fmt.format(date_expire) + ChatColor.RED + " vegna " + ChatColor.DARK_RED + data_old.reason);
+						Common.sendMessage(sender, "&4{banned} &cvar tempbanned af &4{executor} &cthann &4{date_executed} &ctil &4{date_expire} &cvegna: &4{reason}", data_old.getHashMap());
 						ds.add(data);
 						// TODO: i18n
-						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + data.banned + " var unbannadur af " + data.executor + " vegna " + data.reason);
+						Common.broadcastMessage("&aTímabundid bann á &2{banned} &avar aflétt af &2{executor} &avegna: &2{reason}", data.getHashMap());
 						break;
 					case WARNING:
 						// TODO: i18n
-						sender.sendMessage(ChatColor.DARK_RED + data.banned + ChatColor.RED + " var warned af " + ChatColor.DARK_RED + data_old.executor + ChatColor.RED + " thann " + ChatColor.DARK_RED + fmt.format(date_executed) + ChatColor.RED + " til " + ChatColor.DARK_RED + fmt.format(date_expire) + ChatColor.RED + " vegna " + ChatColor.DARK_RED + data_old.reason);
+						Common.sendMessage(sender, "&4{banned} &cfékk advörun frá &4{executor} &cthann &4{date_executed} &cvegna: &4{reason}", data_old.getHashMap());
 						ds.add(data);
 						// TODO: i18n
-						Bukkit.getServer().broadcastMessage(ChatColor.DARK_GREEN + data.banned + " var unbannadur af " + data.executor + " vegna " + data.reason);
+						Common.broadcastMessage("&aAdvörun á &2{banned} &avar aflétt af &2{executor} &avegna: &2{reason}", data.getHashMap());
 						break;
 				}
 				return true;
@@ -291,46 +266,33 @@ public class Bans implements Listener {
 
 		Sandkassinn.log.info("Ban module enabled.");
 	}
-
+	
 	@EventHandler(priority = EventPriority.HIGHEST)
-	public void eventLogin(PlayerJoinEvent e) {
+	public void eventPlayerLogin(PlayerLoginEvent e) {
 		Player player = e.getPlayer();
 		BanData data = ds.check(player.getName());
-		if (data == null) {
-			return;
-		}
-
-		// Might has ban
-		switch(data.type) {
-			case PARDON:
-				// Unbanned, do nothing
-				break;
-			case PERMABAN:
-				// Permabanned, frown upon user
-				e.setJoinMessage(null);
-				// TODO: i18n
-				player.kickPlayer(ChatColor.DARK_RED + "Endanlegt bann : " + ChatColor.RED + data.reason);
-				break;
-			case TEMPBAN:
-				if (data.date_expire < System.currentTimeMillis()/1000L) {
-					// Ban expired, do nothing
+		if (data != null) {
+			switch (data.type) {
+				case COMPROMISED:
+					Sandkassinn.log.info(Common.buildString("Connection attempt from stolen account {banned}", data.getHashMap()));
+					// TODO: i18n
+					e.disallow(PlayerLoginEvent.Result.KICK_OTHER, Common.buildString("&4Stolinn account - IP logged", data.getHashMap()));
 					break;
-				}
-				// Temporary ban, frown upon user
-				e.setJoinMessage(null);
-				Date date = new Date((long)data.date_expire*1000);
-				DateFormat fmt = new SimpleDateFormat("dd.MM.yyyy hh:mm");
-				// TODO: i18n
-				player.kickPlayer(ChatColor.DARK_RED + "Tímabundid bann til " + fmt.format(date) + " : " + ChatColor.RED + data.reason);
-				break;
-			// Warning, warn user
-			case WARNING:
-				// TODO: i18n
-				player.sendMessage(ChatColor.DARK_RED + "Advörun : " + ChatColor.RED + data.reason);
-				break;
-			case COMPROMISED:
-				e.setJoinMessage(null);
-				player.kickPlayer(ChatColor.DARK_RED + "Stolinn account - IP logged");
+				case PERMABAN:
+					Sandkassinn.log.info(Common.buildString("Connection attempt from permabanned account {banned}", data.getHashMap()));
+					// TODO: i18n
+					e.disallow(PlayerLoginEvent.Result.KICK_OTHER, Common.buildString("&cEndanlegt bann vegna: &4{reason}", data.getHashMap()));
+					break;
+				case TEMPBAN:
+					if (data.date_expire * 1000L < System.currentTimeMillis()) {
+						// Ban expired, do nothing
+						break;
+					}
+					Sandkassinn.log.info(Common.buildString("Connection attempt from tempbanned account {banned} ", data.getHashMap()));
+					// TODO: i18n
+					e.disallow(PlayerLoginEvent.Result.KICK_OTHER, Common.buildString("&cTímabundid bann til &4{date_expire} &cvegna: &4{reason}", data.getHashMap()));
+					break;
+			}
 		}
 	}
 
@@ -360,9 +322,10 @@ public class Bans implements Listener {
 
 	private OfflinePlayer getPlayer(String playerName) throws UserException {
 		OfflinePlayer player = Bukkit.getServer().getOfflinePlayer(playerName);
-		if (!player.hasPlayedBefore()) {
-			throw new UserException(playerName + " hefur aldrei komid inn á serverinn");
-		}
+		// TODO: Make it work properly
+		// if (!player.hasPlayedBefore()) {
+		// 	throw new UserException(playerName + " hefur aldrei komid inn á serverinn");
+		//}
 		return player;
 	}
 
@@ -374,13 +337,19 @@ public class Bans implements Listener {
 	 * @throws Exception Invalid time format
 	 */
 	private long getTime(String time) throws Exception {
+		Sandkassinn.log.info("Time:" + time);
 		long seconds = 0;
 		StringBuilder stack = new StringBuilder();
 		for(int i = 0; i < time.length(); ++i) {
 			if(Character.isDigit(time.charAt(i))) {
 				stack.append(time.charAt(i));
 			} else {
-				int s = Integer.parseInt(stack.toString());
+				int s = 0;
+				try {
+					s = Integer.parseInt(stack.toString());
+				} catch(NumberFormatException e) {
+					throw new UserException(time + " is not a proper time format");
+				}
 				stack = new StringBuilder();
 
 				// Seconds

@@ -1,6 +1,5 @@
 package is.gussi.bukkit.plugin.sandkassinn;
 
-import java.util.List;
 import java.util.logging.Logger;
 
 import net.milkbowl.vault.chat.Chat;
@@ -30,12 +29,6 @@ public class Sandkassinn extends JavaPlugin {
 		
 		// Register services, care less if it's not enabled
 		this.setupServices();
-		
-		// Register common mysql database connection
-		List<String> lst = this.getConfig().getStringList("sandkassinn.datasource.mysql");
-		for (String str : lst) {
-			Sandkassinn.log.info(str);
-		}
 
 		// Register modules
 		new Bans(this);

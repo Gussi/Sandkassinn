@@ -33,6 +33,7 @@ public class Sandkassinn extends JavaPlugin {
 		// Register modules
 		new Bans(this);
 		new AutoCollect(this);
+		new AutoExperience(this);
 
 		Sandkassinn.log.info(this.getDescription().getName() + " version " + this.getDescription().getVersion() + " is enabled");
 	}

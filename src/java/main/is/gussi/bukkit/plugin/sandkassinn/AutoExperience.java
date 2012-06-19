@@ -30,7 +30,7 @@ public class AutoExperience {
 					float exp_add = (1f / (10f * ((float)player.getLevel() + 1))) * 2f; // Horrible formula
 					if (player.getExp() + exp_add > 1f) {
 						// If exp exceeds 1, raise lvl and add remaining exp
-						player.setExp(exp_add - 1f);
+						player.setExp(player.getExp() + exp_add - 1f);
 						player.setLevel(player.getLevel() + 1);
 					} else {
 						// Else, just add the exp
